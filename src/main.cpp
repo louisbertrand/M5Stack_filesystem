@@ -12,10 +12,6 @@
 #include <Arduino.h>
 #include <RBD_Timer.h>
 
-const char DIR[] = "/2023";
-const char LOGGING[] = "/2023/LOGGING.TXT"; 
-const char JOURNAL[] = "/2023/JOURNAL.TXT"; 
-
 RBD::Timer activity{1000};  // Write to SD card for this long (ms)
 
 // Declare test functions
@@ -36,10 +32,18 @@ void setup()
   M5.begin();
 #endif
 
+  M5.Lcd.clear();
+  M5.lcd.setRotation(3);
+  M5.Lcd.setTextFont(1);
+  M5.Lcd.setTextColor(TFT_WHITE, TFT_BLACK);
+  M5.Lcd.setCursor(0, 55);
+
   Serial.println("SD.begin(4)");
+  M5.Lcd.println("SD.begin(4)");
   auto status = SD.begin(4);  // GPIO 4
   if(!status) {
     Serial.println("Cannot open SD card.");
+    M5.Lcd.println("Cannot open SD card.");
     return;
   }
   test_one_then_two_alternating();
@@ -55,11 +59,11 @@ void loop()
 }
 
 // Open file1, write, close file 1, then the same for file2.
-// The values in each file should be integers, monotonically
-// increasing but not necessarily consecutive.
+// The values in each file should be a pair of integers,
+// monotonically increasing but not necessarily consecutive.
 // File 1   File 2
-// 0001     0004
-// 0007     0010
+// 0001-1234     0004-2567
+// 0007-2790     0010-0200
 const char DIR1[] = "/TEST1";
 const char LOGGING1[] = "/TEST1/LOGGING.TXT"; 
 const char JOURNAL1[] = "/TEST1/JOURNAL.TXT"; 
@@ -68,20 +72,21 @@ void test_one_then_two_alternating()
   if(!SD.exists(DIR1)) {
     SD.mkdir(DIR1);
   }
+  M5.Lcd.println("Running test 1");
   Serial.print(DIR1); Serial.print("@"); Serial.println(micros());
   activity.restart();
   while(!activity.isExpired()) {
     auto fd1 = SD.open(LOGGING1, "a");
-    fd1.printf("%u\n", micros());
+    fd1.printf("%u-%u\n", millis(), micros());
     fd1.close();
     auto fd2 = SD.open(JOURNAL1, "a");
-    fd2.printf("%u\n", micros());
+    fd2.printf("%u-%u\n", millis(), micros());
     fd2.close();
   }
 }
 
 // Open file1 and file 2, write file1 and file2, close file1 and file2.
-// The values in each file should be integers, the same or
+// The values in each file should be a pair of integers, the same or
 // monotonically increasing, but not necessarily consecutive.
 // File 1   File 2
 // 0001     0003
@@ -94,13 +99,14 @@ void test_one_two_together()
   if(!SD.exists(DIR2)) {
     SD.mkdir(DIR2);
   }
+  M5.Lcd.println("Running test 2");
   Serial.print(DIR2); Serial.print("@"); Serial.println(micros());
   activity.restart();
   while(!activity.isExpired()) {
     auto fd1 = SD.open(LOGGING2, "a");
     auto fd2 = SD.open(JOURNAL2, "a");
-    fd1.printf("%u\n", micros());
-    fd2.printf("%u\n", micros());
+    fd1.printf("%u-%u\n", millis(), micros());
+    fd2.printf("%u-%u\n", millis(), micros());
     fd1.close();
     fd2.close();
   }
